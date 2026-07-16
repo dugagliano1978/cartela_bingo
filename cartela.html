@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minha Cartela de Bingo</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+            touch-action: manipulation; /* Melhora o toque no celular */
+        }
+
+        h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        #bingo-card {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .header {
+            background-color: #e74c3c;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-align: center;
+            padding: 10px 0;
+            border-radius: 5px;
+        }
+
+        .cell {
+            background-color: #ecf0f1;
+            color: #2c3e50;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            aspect-ratio: 1 / 1;
+            border-radius: 50%;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Estilo quando o jogador marca o número (O "feijão") */
+        .cell.marked {
+            background-color: #27ae60;
+            color: white;
+            transform: scale(0.95);
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.2);
+        }
+
+        .cell.free {
+            background-color: #f1c40f;
+            color: #d35400;
+            font-size: 0.9rem;
+            cursor: default;
+        }
+
+        .reset-btn {
+            margin-top: 30px;
+            background-color: #95a5a6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Minha Cartela</h2>
+
+    <div id="bingo-card">
+        <!-- Cabeçalho -->
+        <div class="header">B</div>
+        <div class="header">I</div>
+        <div class="header">N</div>
+        <div class="header">G</div>
+        <div class="header">O</div>
+        
+        <!-- Os números serão gerados via JavaScript -->
+    </div>
+
+    <!-- Botão opcional caso o jogador queira jogar uma nova rodada do zero -->
+    <button class="reset-btn" onclick="gerarNovaCartela()">Gerar Nova Cartela</button>
+
+    <script>
+        // Limites de números para cada coluna
+        const limites = [
+            { min: 1, max: 15 },   // B
+            { min: 16, max: 30 },  // I
+            { min: 31, max: 45 },  // N
+            { min: 46, max: 60 },  // G
+            { min: 61, max: 75 }   // O
+        ];
+
+        let cartela = [];
+        let marcacoes = [];
+
+        function iniciarCartela() {
+            // Verifica se o jogador já tem uma cartela salva na memória do celular
+            const cartelaSalva = localStorage.getItem('bingoCartela');
+            const marcacoesSalvas = localStorage.getItem('bingoMarcacoes');
+
+            if (cartelaSalva) {
+                cartela = JSON.parse(cartelaSalva);
+                marcacoes = marcacoesSalvas ? JSON.parse(marcacoesSalvas) : Array(25).fill(false);
+            } else {
+                criarNumeros();
+            }
+            renderizarCartela();
+        }
+
+        function criarNumeros() {
+            cartela = [];
+            marcacoes = Array(25).fill(false);
+            marcacoes[12] = true; // O espaço central já vem marcado
+
+            for (let c = 0; c < 5; c++) {
+                let numerosColuna = new Set();
+                while (numerosColuna.size < 5) {
+                    let num = Math.floor(Math.random() * (limites[c].max - limites[c].min + 1)) + limites[c].min;
+                    numerosColuna.add(num);
+                }
+                let arrayColuna = Array.from(numerosColuna);
+                
+                // Distribui os números nas linhas daquela coluna
+                for (let l = 0; l < 5; l++) {
+                    let index = l * 5 + c;
+                    cartela[index] = arrayColuna[l];
+                }
+            }
+            // Espaço central Livre
+            cartela[12] = "LIVRE";
+            salvarDados();
+        }
+
+        function renderizarCartela() {
+            const grid = document.getElementById('bingo-card');
+            
+            // Limpa tudo menos o cabeçalho (que são as 5 primeiras divs)
+            while (grid.children.length > 5) {
+                grid.removeChild(grid.lastChild);
+            }
+
+            for (let i = 0; i < 25; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.textContent = cartela[i];
+                
+                if (i === 12) {
+                    cell.classList.add('free');
+                    cell.classList.add('marked');
+                } else {
+                    if (marcacoes[i]) {
+                        cell.classList.add('marked');
+                    }
+                    // Adiciona evento de clique para marcar/desmarcar
+                    cell.onclick = function() {
+                        alternarMarcacao(i, cell);
+                    };
+                }
+                grid.appendChild(cell);
+            }
+        }
+
+        function alternarMarcacao(index, elemento) {
+            marcacoes[index] = !marcacoes[index];
+            if (marcacoes[index]) {
+                elemento.classList.add('marked');
+            } else {
+                elemento.classList.remove('marked');
+            }
+            salvarDados();
+        }
+
+        function salvarDados() {
+            localStorage.setItem('bingoCartela', JSON.stringify(cartela));
+            localStorage.setItem('bingoMarcacoes', JSON.stringify(marcacoes));
+        }
+
+        function gerarNovaCartela() {
+            if(confirm("Tem certeza? Você perderá a cartela atual e receberá uma nova.")) {
+                localStorage.removeItem('bingoCartela');
+                localStorage.removeItem('bingoMarcacoes');
+                iniciarCartela();
+            }
+        }
+
+        // Inicia tudo ao carregar a página
+        window.onload = iniciarCartela;
+    </script>
+</body>
+</html>
