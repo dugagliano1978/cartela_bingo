@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sorteio de Bingo</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        #display-container {
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 20px 40px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            text-align: center;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        #current-ball {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #e74c3c;
+            margin: 10px 0;
+            min-height: 60px;
+        }
+
+        button {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1.2rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin: 5px;
+        }
+
+        button:hover {
+            background-color: #2ecc71;
+        }
+
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        #btn-reset {
+            background-color: #e67e22;
+        }
+
+        #btn-reset:hover {
+            background-color: #d35400;
+        }
+
+        /* Tabela do Bingo */
+        #bingo-board {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .letter {
+            background-color: #2980b9;
+            color: white;
+            font-size: 2rem;
+            font-weight: bold;
+            text-align: center;
+            padding: 15px 0;
+            border-radius: 5px;
+            text-transform: uppercase;
+        }
+
+        .number {
+            background-color: #ecf0f1;
+            color: #7f8c8d;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-align: center;
+            padding: 10px 0;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        /* Estilo para números sorteados */
+        .number.drawn {
+            background-color: #f1c40f;
+            color: #2c3e50;
+            transform: scale(1.05);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Sorteio de Bingo</h1>
+
+    <div id="display-container">
+        <div>Último número sorteado:</div>
+        <div id="current-ball">--</div>
+        <button id="btn-draw" onclick="sortearNumero()">Sortear Número</button>
+        <button id="btn-reset" onclick="reiniciarJogo()">Reiniciar Jogo</button>
+    </div>
+
+    <div id="bingo-board">
+        <!-- As colunas B, I, N, G, O serão geradas pelo JavaScript -->
+    </div>
+
+    <script>
+        const colunas = [
+            { letra: 'B', min: 1, max: 15 },
+            { letra: 'I', min: 16, max: 30 },
+            { letra: 'N', min: 31, max: 45 },
+            { letra: 'G', min: 46, max: 60 },
+            { letra: 'O', min: 61, max: 75 }
+        ];
+
+        let numerosDisponiveis = [];
+        let numerosSorteados = [];
+
+        // Inicializa o jogo gerando a tabela e a lista de números
+        function inicializar() {
+            const board = document.getElementById('bingo-board');
+            board.innerHTML = '';
+            numerosDisponiveis = [];
+            numerosSorteados = [];
+
+            // Preenche o vetor com números de 1 a 75
+            for (let i = 1; i <= 75; i++) {
+                numerosDisponiveis.push(i);
+            }
+
+            // Gera o painel visual
+            colunas.forEach(col => {
+                const colDiv = document.createElement('div');
+                colDiv.className = 'column';
+
+                const letraDiv = document.createElement('div');
+                letraDiv.className = 'letter';
+                letraDiv.textContent = col.letra;
+                colDiv.appendChild(letraDiv);
+
+                for (let i = col.min; i <= col.max; i++) {
+                    const numDiv = document.createElement('div');
+                    numDiv.className = 'number';
+                    numDiv.id = 'num-' + i;
+                    numDiv.textContent = i;
+                    colDiv.appendChild(numDiv);
+                }
+
+                board.appendChild(colDiv);
+            });
+
+            document.getElementById('current-ball').textContent = '--';
+            document.getElementById('btn-draw').disabled = false;
+            document.getElementById('btn-draw').textContent = 'Sortear Número';
+        }
+
+        // Função para sortear o número
+        function sortearNumero() {
+            if (numerosDisponiveis.length === 0) {
+                alert("Todos os números já foram sorteados!");
+                return;
+            }
+
+            // Escolhe um índice aleatório do array de números disponíveis
+            const indiceAleatorio = Math.floor(Math.random() * numerosDisponiveis.length);
+            const numeroSorteado = numerosDisponiveis[indiceAleatorio];
+
+            // Remove o número sorteado dos disponíveis
+            numerosDisponiveis.splice(indiceAleatorio, 1);
+            numerosSorteados.push(numeroSorteado);
+
+            // Descobre qual a letra deste número
+            let letra = '';
+            for (let col of colunas) {
+                if (numeroSorteado >= col.min && numeroSorteado <= col.max) {
+                    letra = col.letra;
+                    break;
+                }
+            }
+
+            // Atualiza o visor principal
+            document.getElementById('current-ball').textContent = letra + ' ' + numeroSorteado;
+
+            // Muda a cor do número na tabela
+            const celula = document.getElementById('num-' + numeroSorteado);
+            if (celula) {
+                celula.classList.add('drawn');
+            }
+
+            // Desabilita botão se acabar os números
+            if (numerosDisponiveis.length === 0) {
+                document.getElementById('btn-draw').disabled = true;
+                document.getElementById('btn-draw').textContent = 'Fim do Jogo';
+            }
+        }
+
+        // Função para reiniciar o jogo
+        function reiniciarJogo() {
+            const confirmacao = confirm("Tem certeza que deseja reiniciar o jogo? O progresso atual será perdido.");
+            if (confirmacao) {
+                inicializar();
+            }
+        }
+
+        // Inicia a tabela assim que a página carregar
+        window.onload = inicializar;
+    </script>
+</body>
+</html>
